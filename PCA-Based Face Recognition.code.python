@@ -1,0 +1,39 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, accuracy_score
+
+# Step 1: Compute the mean image
+mean_image = np.mean(train_images, axis=1).reshape(-1, 1)
+
+# Step 2: Center the images by subtracting the mean image
+centered_images = train_images - mean_image
+
+# Step 3: Compute the covariance matrix
+covariance_matrix = (1 / centered_images.shape[1]) * np.dot(centered_images, centered_images.T)
+
+# Step 4: Compute eigenvalues and eigenvectors
+eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+
+# Step 5: Determine non-zero eigenvalues and cumulative variance
+real_eigenvalues = np.real(eigenvalues)
+explained_variance = real_eigenvalues / np.sum(real_eigenvalues)
+cumulative_variance = np.cumsum(explained_variance)
+
+# Step 6: Choose the number of components to retain 95% variance
+threshold = 0.95
+k = np.argmax(cumulative_variance >= threshold) + 1
+
+print(f"Number of Eigenvectors to Use for Face Recognition: {k}")
+
+# Reconstruction using PCA
+def reconstruct_images(images, mean_image, eigenvectors, num_components):
+    projections = np.dot(eigenvectors[:, :num_components].T, images - mean_image)
+    reconstructed_images = np.dot(eigenvectors[:, :num_components], projections) + mean_image
+    return np.real(reconstructed_images)
+
+num_components_list = [5, 20, 110]
+for num_components in num_components_list:
+    reconstructed_train = reconstruct_images(train_images, mean_image, eigenvectors, num_components)
+    error = np.mean((train_images[:, 0] - reconstructed_train[:, 0]) ** 2)
+    print(f"Reconstruction Error with {num_components} Components: {error:.4f}")
